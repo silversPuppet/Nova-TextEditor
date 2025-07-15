@@ -1,14 +1,14 @@
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Dictionary;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Map;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.plaf.basic.BasicButtonUI;
 import javax.swing.text.*;
+import javax.swing.text.html.HTMLEditorKit;
+import javax.swing.text.rtf.RTFEditorKit;
+
 import java.awt.*;
 import java.awt.event.*;
 
@@ -64,20 +64,30 @@ public class FileFormatManager {
         JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
         jfc.setDialogTitle("Choose destination.");
         jfc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+        
 
-        try {
-            File file = new File(jfc.getSelectedFile().getAbsolutePath());
-            FileWriter outputFile = new FileWriter(file);
-            // How to save Style/Formating as well?
-            outputFile.write(textWindow.getText());
-            outputFile.close();
-        } catch (FileNotFoundException ex) {
-            Component file = null;
-            JOptionPane.showMessageDialog(file, "File not found.");
-        } catch (IOException ex) {
-            Component file = null;
-            JOptionPane.showMessageDialog(file, "Error.");
+        int option = jfc.showSaveDialog(frame);
+
+        if (option == JFileChooser.APPROVE_OPTION) {
+            StyledDocument doc = (StyledDocument) textWindow.getDocument();
+            HTMLEditorKit kit = new HTMLEditorKit();
+
+            BufferedOutputStream out;
+            
+                try {
+                    out = new BufferedOutputStream(new FileOutputStream(jfc.getSelectedFile().getAbsoluteFile()));
+
+                    kit.write(out, doc, doc.getStartPosition().getOffset(), doc.getLength());
+
+                } catch (FileNotFoundException e) {
+
+                } catch (IOException e){
+
+                } catch (BadLocationException e){
+
+                }
         }
+
     }
 
     // Text Interface for writing and displaying formatted Text
@@ -108,16 +118,21 @@ public class FileFormatManager {
     }
 
     // GUI for interacting with Files
-
-    // TO DO: Extract Similair Functionality to parent class
     private class FileUI implements GUI {
         public JPanel createPanel() {
             JPanel fileManagingLayout = new JPanel();
             fileManagingLayout.setLayout(new BoxLayout(fileManagingLayout, BoxLayout.LINE_AXIS));
-                                                              
+
             JButton saveButton = new JButton(guiLanguageDicitonary.get("btn_save_")[language]);
+            saveButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent event) {
+                    saveFile();
+                }
+            });
 
             fileManagingLayout.add(saveButton);
+
             return fileManagingLayout;
         }
     }
@@ -138,13 +153,13 @@ public class FileFormatManager {
         }
     }
 
-    /*  
-    "Toolbox" for all UI's to follow certain appearances 
-    For Example share styles between UIs:
-    - Buttons
-    - Dropdowns
-    - Sliders 
-    */
+    /*
+     * "Toolbox" for all UI's to follow certain appearances
+     * For Example share styles between UIs:
+     * - Buttons
+     * - Dropdowns
+     * - Sliders
+     */
     interface GUI {
         public JPanel createPanel();
 
@@ -157,11 +172,13 @@ public class FileFormatManager {
         }
     }
 
-    //Creates a Dictionary with Key-value Pairs
-    //          key     en,de
-    Map<String, String[]>  guiLanguageDicitonary = new HashMap<>() {{
-        //      Type Name                   English, German
-        put("btn_save_", new String[] {"SAVE", "SPEICHERN"});
-    }};
-    
+    // Creates a Dictionary with Key-value Pairs
+    // key en,de
+    Map<String, String[]> guiLanguageDicitonary = new HashMap<>() {
+        {
+            // Type Name English, German
+            put("btn_save_", new String[] { "SAVE", "SPEICHERN" });
+        }
+    };
+
 }
