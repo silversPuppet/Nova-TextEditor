@@ -6,7 +6,6 @@ import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.plaf.basic.BasicButtonUI;
 import javax.swing.text.*;
-import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.rtf.RTFEditorKit;
 
 import java.awt.*;
@@ -60,35 +59,32 @@ public class FileFormatManager {
         });
     }
 
-    public void saveFile() {
-        JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
-        jfc.setDialogTitle("Choose destination.");
-        jfc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-        
+    
+public void saveFile() {
+    JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+    jfc.setDialogTitle("Choose destination.");
+    jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
-        int option = jfc.showSaveDialog(frame);
+    int option = jfc.showSaveDialog(frame);
 
-        if (option == JFileChooser.APPROVE_OPTION) {
-            StyledDocument doc = (StyledDocument) textWindow.getDocument();
-            HTMLEditorKit kit = new HTMLEditorKit();
-
-            BufferedOutputStream out;
-            
-                try {
-                    out = new BufferedOutputStream(new FileOutputStream(jfc.getSelectedFile().getAbsoluteFile()));
-
-                    kit.write(out, doc, doc.getStartPosition().getOffset(), doc.getLength());
-
-                } catch (FileNotFoundException e) {
-
-                } catch (IOException e){
-
-                } catch (BadLocationException e){
-
-                }
+    if (option == JFileChooser.APPROVE_OPTION) {
+        File selectedFile = jfc.getSelectedFile();
+        // Ensure it has the .rtf extension
+        if (!selectedFile.getName().toLowerCase().endsWith(".rtf")) {
+            selectedFile = new File(selectedFile.getAbsolutePath() + ".rtf");
         }
 
+        StyledDocument doc = (StyledDocument) textWindow.getDocument();
+        RTFEditorKit rtfKit = new RTFEditorKit();
+
+        try (OutputStream out = new FileOutputStream(selectedFile)) {
+            rtfKit.write(out, doc, 0, doc.getLength());
+            JOptionPane.showMessageDialog(frame, "File saved successfully!");
+        } catch (IOException | javax.swing.text.BadLocationException e) {
+            JOptionPane.showMessageDialog(frame, "Error saving file: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
+}
 
     // Text Interface for writing and displaying formatted Text
     private class TextWindow extends JTextPane {
