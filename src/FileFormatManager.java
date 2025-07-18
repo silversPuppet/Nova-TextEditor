@@ -1,4 +1,5 @@
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -6,7 +7,9 @@ import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.plaf.basic.BasicButtonUI;
 import javax.swing.text.*;
+import javax.swing.text.DefaultEditorKit.*;
 import javax.swing.text.rtf.RTFEditorKit;
+import java.util.List;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -27,7 +30,8 @@ public class FileFormatManager {
      * 0 = English
      * 1 = German
      */
-    int language = 0;
+    String[] languages = { "English", "Deutsch" };
+    int currentLanguage = 0;
 
     public FileFormatManager() {
         frame = new Frame("Nova Text Editor");
@@ -36,7 +40,9 @@ public class FileFormatManager {
         // TEMPORARY START WITH EMPTY TEXT WINDOW
         textWindow = newTextWindow();
         textWindow.setContentType("text/rtf");
-        frame.add(textWindow, BorderLayout.CENTER);
+        textWindow.setDocument(new DefaultStyledDocument());
+        JScrollPane editorScrollPane = new JScrollPane(textWindow);
+        frame.add(editorScrollPane, BorderLayout.CENTER);
 
         // Adding the File UI to the Window
         FileUI fileUI = new FileUI();
@@ -60,7 +66,31 @@ public class FileFormatManager {
         });
     }
 
-    public void quit(){
+    public static List<Component> getAllComponents(final Container c) {
+        Component[] comps = c.getComponents();
+        List<Component> compList = new ArrayList<Component>();
+        for (Component comp : comps) {
+            compList.add(comp);
+            if (comp instanceof Container)
+                compList.addAll(getAllComponents((Container) comp));
+        }
+        return compList;
+    }
+
+    public void updateLanguage() {
+        List<Component> comps = getAllComponents(frame);
+        for (Component component : comps) {
+            if (component instanceof JLabel) {
+                JLabel myLabel = (JLabel) component;
+                myLabel.setText(guiLanguageDicitonary.get(myLabel.getName())[currentLanguage]);
+            } else if (component instanceof JButton) {
+                JButton myButton = (JButton) component;
+                myButton.setText(guiLanguageDicitonary.get(myButton.getName())[currentLanguage]);
+            }
+        }
+    }
+
+    public void quit() {
         System.exit(0);
     }
 
@@ -152,7 +182,10 @@ public class FileFormatManager {
             JPanel fileManagingLayout = new JPanel();
             fileManagingLayout.setLayout(new BoxLayout(fileManagingLayout, BoxLayout.LINE_AXIS));
 
-            JButton saveButton = new JButton(guiLanguageDicitonary.get("btn_save_")[language]);
+            JButton saveButton = new JButton();
+            // Asign Key as name to retrive for language change
+            saveButton.setName("btn_save_");
+            saveButton.setText(guiLanguageDicitonary.get(saveButton.getName())[currentLanguage]);
             saveButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent event) {
@@ -162,7 +195,9 @@ public class FileFormatManager {
 
             fileManagingLayout.add(saveButton);
 
-            JButton openButton = new JButton(guiLanguageDicitonary.get("btn_open_")[language]);
+            JButton openButton = new JButton();
+            openButton.setName("btn_open_");
+            openButton.setText(guiLanguageDicitonary.get(openButton.getName())[currentLanguage]);
             openButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent event) {
@@ -172,7 +207,9 @@ public class FileFormatManager {
 
             fileManagingLayout.add(openButton);
 
-            JButton quitButton = new JButton(guiLanguageDicitonary.get("btn_quit_")[language]);
+            JButton quitButton = new JButton();
+            quitButton.setName("btn_quit_");
+            quitButton.setText(guiLanguageDicitonary.get(quitButton.getName())[currentLanguage]);
             quitButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent event) {
@@ -182,6 +219,39 @@ public class FileFormatManager {
 
             fileManagingLayout.add(quitButton);
 
+            JButton languageButton = new JButton();
+            languageButton.setName("btn_language_");
+            languageButton.setText(guiLanguageDicitonary.get(languageButton.getName())[currentLanguage]);
+            languageButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+
+                    JComboBox<String> jbox = new JComboBox<>(languages);
+
+                    int result = JOptionPane.showConfirmDialog(
+                            frame,
+                            jbox,
+                            "Select Language",
+                            JOptionPane.OK_CANCEL_OPTION,
+                            JOptionPane.PLAIN_MESSAGE);
+
+                    if (result == JOptionPane.OK_OPTION) {
+
+                        String selectedLanguage = (String) jbox.getSelectedItem();
+
+                        for (int i = 0; i < languages.length; i++) {
+                            if (selectedLanguage == languages[i]) {
+                                currentLanguage = i;
+                                updateLanguage();
+                                break;
+                            }
+                        }
+                    }
+                }
+            });
+
+            fileManagingLayout.add(languageButton);
+
             return fileManagingLayout;
         }
     }
@@ -190,15 +260,66 @@ public class FileFormatManager {
     private class FormatingUI implements GUI {
 
         public JPanel createPanel() {
-            JPanel fileManagingLayout = new JPanel();
-            fileManagingLayout.setLayout(new BoxLayout(fileManagingLayout, BoxLayout.LINE_AXIS));
+            JPanel formatManagingLayout = new JPanel();
+            formatManagingLayout.setLayout(new BoxLayout(formatManagingLayout, BoxLayout.PAGE_AXIS));
 
             // Save Button Names in Array for easy language changes
             // TO DO FORMAT TO HEADING
-            JLabel formatingLabel = new JLabel("Formatting");
+            JLabel formatingLabel = new JLabel();
+            formatingLabel.setName("lbl_formating_");
+            formatingLabel.setText(guiLanguageDicitonary.get((String) formatingLabel.getName())[currentLanguage]);
+            formatManagingLayout.add(formatingLabel);
 
-            fileManagingLayout.add(formatingLabel);
-            return fileManagingLayout;
+            JButton cutButton = new JButton(new DefaultEditorKit.CutAction());
+            cutButton.setName("btn_cut_");
+            cutButton.setHideActionText(true);
+            cutButton.setText(guiLanguageDicitonary.get((String) cutButton.getName())[currentLanguage]);
+            formatManagingLayout.add(cutButton);
+
+            JButton copyButton = new JButton(new DefaultEditorKit.CopyAction());
+            copyButton.setName("btn_copy_");
+            copyButton.setHideActionText(true);
+            copyButton.setText(guiLanguageDicitonary.get((String) copyButton.getName())[currentLanguage]);
+            formatManagingLayout.add(copyButton);
+
+            JButton pasteButton = new JButton(new DefaultEditorKit.PasteAction());
+            pasteButton.setHideActionText(true);
+            pasteButton.setName("btn_paste_");
+            pasteButton.setText(guiLanguageDicitonary.get((String) pasteButton.getName())[currentLanguage]);
+            formatManagingLayout.add(pasteButton);
+
+            JButton textColourFGButton = new JButton();
+            textColourFGButton.setName("btn_textColour_");
+            textColourFGButton.setHideActionText(true);
+            textColourFGButton.setText(guiLanguageDicitonary.get((String) textColourFGButton.getName())[currentLanguage]);
+            textColourFGButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent event) {
+                    Color newColour = JColorChooser.showDialog(textColourFGButton, "", new Color(0));
+                    SimpleAttributeSet attributeSet = new SimpleAttributeSet();
+                    StyleConstants.setForeground(attributeSet, newColour);
+                    textWindow.setCharacterAttributes(attributeSet, false);
+                }
+            });
+            formatManagingLayout.add(textColourFGButton);
+
+            JButton textColourBGButton = new JButton();
+            textColourBGButton.setName("btn_textColourBG_");
+            textColourBGButton.setHideActionText(true);
+            textColourBGButton.setText(guiLanguageDicitonary.get((String) textColourBGButton.getName())[currentLanguage]);
+            textColourBGButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent event) {
+                    Color newColour = JColorChooser.showDialog(textColourBGButton, "", new Color(255));
+                    SimpleAttributeSet attributeSet = new SimpleAttributeSet();
+                    StyleConstants.setBackground(attributeSet, newColour);
+                    textWindow.setCharacterAttributes(attributeSet, false);
+                }
+            });
+            formatManagingLayout.add(textColourBGButton);
+
+            return formatManagingLayout;
+
         }
     }
 
@@ -229,7 +350,14 @@ public class FileFormatManager {
             put("btn_save_", new String[] { "SAVE", "SPEICHERN" });
             put("btn_open_", new String[] { "OPEN", "ÖFFNEN" });
             put("btn_quit_", new String[] { "QUIT", "SCHLIESEN" });
+            put("btn_language_", new String[] { "LANGUAGE", "SPRACHE" });
+
+            put("lbl_formating_", new String[] { "Formating", "Formatieren" });
+            put("btn_cut_", new String[] { "Cut", "Ausschneiden" });
+            put("btn_copy_", new String[] { "Copy", "Kopieren" });
+            put("btn_textColour_", new String[] { "Colour", "Farbe" });
+            put("btn_textColourBG_", new String[] { "Text Background Colour", "Text Hintergrund Farbe" });
+            put("btn_paste_", new String[] { "Paste", "Hintergrund Farbe" });
         }
     };
-
 }
