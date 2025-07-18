@@ -35,6 +35,7 @@ public class FileFormatManager {
 
         // TEMPORARY START WITH EMPTY TEXT WINDOW
         textWindow = newTextWindow();
+        textWindow.setContentType("text/rtf");
         frame.add(textWindow, BorderLayout.CENTER);
 
         // Adding the File UI to the Window
@@ -59,32 +60,64 @@ public class FileFormatManager {
         });
     }
 
-    
-public void saveFile() {
-    JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
-    jfc.setDialogTitle("Choose destination.");
-    jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+    public void quit(){
+        System.exit(0);
+    }
 
-    int option = jfc.showSaveDialog(frame);
+    public void openFile() {
+        JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+        jfc.setDialogTitle("Choose destination.");
+        jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
-    if (option == JFileChooser.APPROVE_OPTION) {
-        File selectedFile = jfc.getSelectedFile();
-        // Ensure it has the .rtf extension
-        if (!selectedFile.getName().toLowerCase().endsWith(".rtf")) {
-            selectedFile = new File(selectedFile.getAbsolutePath() + ".rtf");
-        }
+        int option = jfc.showOpenDialog(frame);
 
-        StyledDocument doc = (StyledDocument) textWindow.getDocument();
-        RTFEditorKit rtfKit = new RTFEditorKit();
+        if (option == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = jfc.getSelectedFile();
 
-        try (OutputStream out = new FileOutputStream(selectedFile)) {
-            rtfKit.write(out, doc, 0, doc.getLength());
-            JOptionPane.showMessageDialog(frame, "File saved successfully!");
-        } catch (IOException | javax.swing.text.BadLocationException e) {
-            JOptionPane.showMessageDialog(frame, "Error saving file: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            RTFEditorKit kit = new RTFEditorKit();
+            try {
+                textWindow.setContentType("text/rtf");
+                InputStream inputStream = new FileInputStream(selectedFile);
+                DefaultStyledDocument styledDocument = new DefaultStyledDocument(new StyleContext());
+                kit.read(inputStream, styledDocument, 0);
+                textWindow.setDocument(styledDocument);
+            } catch (FileNotFoundException e) {
+                JOptionPane.showMessageDialog(frame, "Error opening file: " + e.getMessage(), "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            } catch (IOException | javax.swing.text.BadLocationException e) {
+                JOptionPane.showMessageDialog(frame, "Error opening file: " + e.getMessage(), "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+
         }
     }
-}
+
+    public void saveFile() {
+        JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+        jfc.setDialogTitle("Choose destination.");
+        jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+
+        int option = jfc.showSaveDialog(frame);
+
+        if (option == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = jfc.getSelectedFile();
+            // Ensure it has the .rtf extension
+            if (!selectedFile.getName().toLowerCase().endsWith(".rtf")) {
+                selectedFile = new File(selectedFile.getAbsolutePath() + ".rtf");
+            }
+
+            StyledDocument doc = (StyledDocument) textWindow.getDocument();
+            RTFEditorKit rtfKit = new RTFEditorKit();
+
+            try (OutputStream out = new FileOutputStream(selectedFile)) {
+                rtfKit.write(out, doc, 0, doc.getLength());
+                JOptionPane.showMessageDialog(frame, "File saved successfully!");
+            } catch (IOException | javax.swing.text.BadLocationException e) {
+                JOptionPane.showMessageDialog(frame, "Error saving file: " + e.getMessage(), "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
 
     // Text Interface for writing and displaying formatted Text
     private class TextWindow extends JTextPane {
@@ -128,6 +161,26 @@ public void saveFile() {
             });
 
             fileManagingLayout.add(saveButton);
+
+            JButton openButton = new JButton(guiLanguageDicitonary.get("btn_open_")[language]);
+            openButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent event) {
+                    openFile();
+                }
+            });
+
+            fileManagingLayout.add(openButton);
+
+            JButton quitButton = new JButton(guiLanguageDicitonary.get("btn_quit_")[language]);
+            quitButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent event) {
+                    quit();
+                }
+            });
+
+            fileManagingLayout.add(quitButton);
 
             return fileManagingLayout;
         }
@@ -174,6 +227,8 @@ public void saveFile() {
         {
             // Type Name English, German
             put("btn_save_", new String[] { "SAVE", "SPEICHERN" });
+            put("btn_open_", new String[] { "OPEN", "ÖFFNEN" });
+            put("btn_quit_", new String[] { "QUIT", "SCHLIESEN" });
         }
     };
 
