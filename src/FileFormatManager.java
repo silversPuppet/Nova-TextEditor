@@ -3,11 +3,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.management.JMException;
 import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.plaf.basic.BasicButtonUI;
 import javax.swing.text.*;
 import javax.swing.text.DefaultEditorKit.*;
+import javax.swing.text.StyledEditorKit.AlignmentAction;
 import javax.swing.text.rtf.RTFEditorKit;
 import java.util.List;
 
@@ -25,6 +27,8 @@ Used to:
 public class FileFormatManager {
     Frame frame;
     TextWindow textWindow;
+    FormatingUI formatingUI; 
+    FileUI fileUI;
 
     /*
      * 0 = English
@@ -45,13 +49,13 @@ public class FileFormatManager {
         frame.add(editorScrollPane, BorderLayout.CENTER);
 
         // Adding the File UI to the Window
-        FileUI fileUI = new FileUI();
+        fileUI = new FileUI();
         JPanel fileUIPanel = fileUI.createPanel();
         frame.add(fileUIPanel, BorderLayout.NORTH);
 
         // Adding the Formating UI to the Window
-        FormatingUI formUI = new FormatingUI();
-        JPanel formatingPanel = formUI.createPanel();
+        formatingUI = new FormatingUI();
+        JPanel formatingPanel = formatingUI.createPanel();
         frame.add(formatingPanel, BorderLayout.WEST);
 
         frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -78,15 +82,29 @@ public class FileFormatManager {
     }
 
     public void updateLanguage() {
+        JPanel formatPanel = formatingUI.getJPanel();
+
         List<Component> comps = getAllComponents(frame);
         for (Component component : comps) {
             if (component instanceof JLabel) {
                 JLabel myLabel = (JLabel) component;
                 myLabel.setText(guiLanguageDicitonary.get(myLabel.getName())[currentLanguage]);
-            } else if (component instanceof JButton) {
+            } 
+            else if (component instanceof JComboBox) {
+                JComboBox<String> myBox = (JComboBox<String>) component;
+                String[] options = myBox.getName().split(" ");
+                myBox.removeAllItems();
+                for (String string : options) {
+                    myBox.addItem(guiLanguageDicitonary.get(string)[currentLanguage]);
+                }
+                formatPanel.add(myBox);
+            }
+            else if (component instanceof JButton && component.getName() != null) {
                 JButton myButton = (JButton) component;
+                System.out.println(myButton.getName());
                 myButton.setText(guiLanguageDicitonary.get(myButton.getName())[currentLanguage]);
             }
+            
         }
     }
 
@@ -237,15 +255,9 @@ public class FileFormatManager {
 
                     if (result == JOptionPane.OK_OPTION) {
 
-                        String selectedLanguage = (String) jbox.getSelectedItem();
+                        currentLanguage = jbox.getSelectedIndex();
+                        updateLanguage();
 
-                        for (int i = 0; i < languages.length; i++) {
-                            if (selectedLanguage == languages[i]) {
-                                currentLanguage = i;
-                                updateLanguage();
-                                break;
-                            }
-                        }
                     }
                 }
             });
@@ -258,9 +270,10 @@ public class FileFormatManager {
 
     // GUI for interacting with the TextWindows Format
     private class FormatingUI implements GUI {
+        JPanel formatManagingLayout;
 
         public JPanel createPanel() {
-            JPanel formatManagingLayout = new JPanel();
+            formatManagingLayout = new JPanel();
             formatManagingLayout.setLayout(new BoxLayout(formatManagingLayout, BoxLayout.PAGE_AXIS));
 
             // Save Button Names in Array for easy language changes
@@ -269,6 +282,11 @@ public class FileFormatManager {
             formatingLabel.setName("lbl_formating_");
             formatingLabel.setText(guiLanguageDicitonary.get((String) formatingLabel.getName())[currentLanguage]);
             formatManagingLayout.add(formatingLabel);
+
+
+            /*
+             *  Buttons
+             */
 
             JButton cutButton = new JButton(new DefaultEditorKit.CutAction());
             cutButton.setName("btn_cut_");
@@ -291,7 +309,8 @@ public class FileFormatManager {
             JButton textColourFGButton = new JButton();
             textColourFGButton.setName("btn_textColour_");
             textColourFGButton.setHideActionText(true);
-            textColourFGButton.setText(guiLanguageDicitonary.get((String) textColourFGButton.getName())[currentLanguage]);
+            textColourFGButton
+                    .setText(guiLanguageDicitonary.get((String) textColourFGButton.getName())[currentLanguage]);
             textColourFGButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent event) {
@@ -306,7 +325,8 @@ public class FileFormatManager {
             JButton textColourBGButton = new JButton();
             textColourBGButton.setName("btn_textColourBG_");
             textColourBGButton.setHideActionText(true);
-            textColourBGButton.setText(guiLanguageDicitonary.get((String) textColourBGButton.getName())[currentLanguage]);
+            textColourBGButton
+                    .setText(guiLanguageDicitonary.get((String) textColourBGButton.getName())[currentLanguage]);
             textColourBGButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent event) {
@@ -318,9 +338,49 @@ public class FileFormatManager {
             });
             formatManagingLayout.add(textColourBGButton);
 
+            /*
+             * Combo Box
+             */
+
+            JComboBox<String> textAlignComboBox = new JComboBox<String>();
+            textAlignComboBox.setName("cbox_align_ cbox_align0_ cbox_align1_ cbox_align2_ cbox_align3_");
+            String[] options = textAlignComboBox.getName().split(" ");
+            for (String string : options) {
+                textAlignComboBox.addItem(guiLanguageDicitonary.get(string)[currentLanguage]);
+            }
+            textAlignComboBox.addItemListener(new ItemListener() {
+                public void itemStateChanged(ItemEvent event) {
+                    if ((event.getStateChange() != ItemEvent.SELECTED) ||
+                            (textAlignComboBox.getSelectedIndex() == 0)) {
+
+                        return;
+                    }
+
+                    String alignmentStr = (String) event.getItem();
+                    int newAlignment = textAlignComboBox.getSelectedIndex() - 1;
+                    // New alignment is set based on these values defined in StyleConstants:
+                    // ALIGN_LEFT 0, ALIGN_CENTER 1, ALIGN_RIGHT 2, ALIGN_JUSTIFIED 3
+                    textAlignComboBox.setAction(new AlignmentAction(alignmentStr, newAlignment));
+                    textAlignComboBox.setSelectedIndex(0); // initialize to (default) select
+
+                }
+            });
+
+            formatManagingLayout.add(textAlignComboBox);
+
+            /*
+             * Sliders
+             */
+
             return formatManagingLayout;
 
         }
+
+        public JPanel getJPanel()
+        {
+            return formatManagingLayout;
+        }
+        
     }
 
     /*
@@ -357,7 +417,12 @@ public class FileFormatManager {
             put("btn_copy_", new String[] { "Copy", "Kopieren" });
             put("btn_textColour_", new String[] { "Colour", "Farbe" });
             put("btn_textColourBG_", new String[] { "Text Background Colour", "Text Hintergrund Farbe" });
-            put("btn_paste_", new String[] { "Paste", "Hintergrund Farbe" });
+            put("btn_paste_", new String[] { "Paste", "Einfügen" });
+            put("cbox_align_", new String[] { "Alignment", "Ausrichtung" });
+            put("cbox_align0_", new String[] { "Align Left", "Linksbündig" });
+            put("cbox_align1_", new String[] { "Align Center", "Zentriert" });
+            put("cbox_align2_", new String[] { "Align Right", "Rechtsbündig" });
+            put("cbox_align3_", new String[] { "Align Justified", "Blocksatz" });
         }
     };
 }
