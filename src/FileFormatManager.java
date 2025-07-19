@@ -5,11 +5,14 @@ import java.util.Map;
 
 import javax.management.JMException;
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.plaf.basic.BasicButtonUI;
 import javax.swing.text.*;
 import javax.swing.text.DefaultEditorKit.*;
 import javax.swing.text.StyledEditorKit.AlignmentAction;
+import javax.swing.text.StyledEditorKit.FontSizeAction;
 import javax.swing.text.rtf.RTFEditorKit;
 import java.util.List;
 
@@ -27,7 +30,7 @@ Used to:
 public class FileFormatManager {
     Frame frame;
     TextWindow textWindow;
-    FormatingUI formatingUI; 
+    FormatingUI formatingUI;
     FileUI fileUI;
 
     /*
@@ -89,8 +92,7 @@ public class FileFormatManager {
             if (component instanceof JLabel) {
                 JLabel myLabel = (JLabel) component;
                 myLabel.setText(guiLanguageDicitonary.get(myLabel.getName())[currentLanguage]);
-            } 
-            else if (component instanceof JComboBox) {
+            } else if (component instanceof JComboBox) {
                 JComboBox<String> myBox = (JComboBox<String>) component;
                 String[] options = myBox.getName().split(" ");
                 myBox.removeAllItems();
@@ -98,13 +100,12 @@ public class FileFormatManager {
                     myBox.addItem(guiLanguageDicitonary.get(string)[currentLanguage]);
                 }
                 formatPanel.add(myBox);
-            }
-            else if (component instanceof JButton && component.getName() != null) {
+            } else if (component instanceof JButton && component.getName() != null) {
                 JButton myButton = (JButton) component;
                 System.out.println(myButton.getName());
                 myButton.setText(guiLanguageDicitonary.get(myButton.getName())[currentLanguage]);
             }
-            
+
         }
     }
 
@@ -274,7 +275,7 @@ public class FileFormatManager {
 
         public JPanel createPanel() {
             formatManagingLayout = new JPanel();
-            formatManagingLayout.setLayout(new BoxLayout(formatManagingLayout, BoxLayout.PAGE_AXIS));
+            formatManagingLayout.setLayout(new BoxLayout(formatManagingLayout, BoxLayout.Y_AXIS));
 
             // Save Button Names in Array for easy language changes
             // TO DO FORMAT TO HEADING
@@ -283,9 +284,8 @@ public class FileFormatManager {
             formatingLabel.setText(guiLanguageDicitonary.get((String) formatingLabel.getName())[currentLanguage]);
             formatManagingLayout.add(formatingLabel);
 
-
             /*
-             *  Buttons
+             * Buttons
              */
 
             JButton cutButton = new JButton(new DefaultEditorKit.CutAction());
@@ -339,6 +339,48 @@ public class FileFormatManager {
             formatManagingLayout.add(textColourBGButton);
 
             /*
+             * Sliders
+             */
+
+            int defaultTextSize = 12;
+
+            JLabel sliderLabel = new JLabel();
+            sliderLabel.setName("lbl_textSize_");
+            sliderLabel.setText(guiLanguageDicitonary.get((String) sliderLabel.getName())[currentLanguage]);
+            formatManagingLayout.add(sliderLabel);
+
+            JLabel textSizeLabel = new JLabel();
+            textSizeLabel.setText(Integer.toString(defaultTextSize));
+            formatManagingLayout.add(textSizeLabel);
+
+            JSlider textSizeSlider = new JSlider(1, 50, defaultTextSize);
+            textSizeSlider.addChangeListener(new ChangeListener() {
+                public void stateChanged(ChangeEvent e) {
+                    int newFontSize = textSizeSlider.getValue();
+                    textSizeLabel.setText(Integer.toString(newFontSize));
+
+                    StyledDocument doc = textWindow.getStyledDocument();
+                    int start = textWindow.getSelectionStart();
+                    int end = textWindow.getSelectionEnd();
+
+                    if (start == end) {
+                        // No selection, apply style to input attributes
+                        SimpleAttributeSet attr = new SimpleAttributeSet();
+                        StyleConstants.setFontSize(attr, newFontSize);
+                        textWindow.setCharacterAttributes(attr, false);
+                    } else {
+                        // Apply font size to the selected text
+                        MutableAttributeSet attr = new SimpleAttributeSet();
+                        StyleConstants.setFontSize(attr, newFontSize);
+                        doc.setCharacterAttributes(start, end - start, attr, false);
+                    }
+                }
+            });
+
+            
+            formatManagingLayout.add(textSizeSlider);
+
+            /*
              * Combo Box
              */
 
@@ -368,19 +410,16 @@ public class FileFormatManager {
 
             formatManagingLayout.add(textAlignComboBox);
 
-            /*
-             * Sliders
-             */
+            
 
             return formatManagingLayout;
 
         }
 
-        public JPanel getJPanel()
-        {
+        public JPanel getJPanel() {
             return formatManagingLayout;
         }
-        
+
     }
 
     /*
@@ -423,6 +462,7 @@ public class FileFormatManager {
             put("cbox_align1_", new String[] { "Align Center", "Zentriert" });
             put("cbox_align2_", new String[] { "Align Right", "Rechtsbündig" });
             put("cbox_align3_", new String[] { "Align Justified", "Blocksatz" });
+            put("lbl_textSize_", new String[] { "Size", "Größe" });
         }
     };
 }
