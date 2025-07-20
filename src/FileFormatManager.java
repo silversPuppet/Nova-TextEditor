@@ -1,7 +1,9 @@
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Vector;
 
 import javax.management.JMException;
 import javax.swing.*;
@@ -9,9 +11,11 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.plaf.basic.BasicButtonUI;
+import javax.swing.plaf.basic.BasicComboBoxRenderer;
 import javax.swing.text.*;
 import javax.swing.text.DefaultEditorKit.*;
 import javax.swing.text.StyledEditorKit.AlignmentAction;
+import javax.swing.text.StyledEditorKit.FontFamilyAction;
 import javax.swing.text.StyledEditorKit.FontSizeAction;
 import javax.swing.text.rtf.RTFEditorKit;
 import java.util.List;
@@ -32,6 +36,9 @@ public class FileFormatManager {
     TextWindow textWindow;
     FormatingUI formatingUI;
     FileUI fileUI;
+    private static final List<String> FONT_LIST = Arrays
+            .asList(new String[] { "Arial", "Calibri", "Cambria", "Courier New", "Comic Sans MS", "Dialog", "Georgia",
+                    "Helevetica", "Lucida Sans", "Monospaced", "Tahoma", "Times New Roman", "Verdana" });
 
     /*
      * 0 = English
@@ -377,7 +384,6 @@ public class FileFormatManager {
                 }
             });
 
-            
             formatManagingLayout.add(textSizeSlider);
 
             /*
@@ -410,10 +416,101 @@ public class FileFormatManager {
 
             formatManagingLayout.add(textAlignComboBox);
 
-            
+            JComboBox fontsBox = new JComboBox<String>(getEditorFonts());
+            fontsBox.setSelectedItem(0);
+            fontsBox.setRenderer(new FontFamilyBox(fontsBox));
+            fontsBox.addItemListener(new ItemListener() {
+
+                @Override
+                public void itemStateChanged(ItemEvent e) {
+                    StyledDocument doc = textWindow.getStyledDocument();
+                    int start = textWindow.getSelectionStart();
+                    int end = textWindow.getSelectionEnd();
+
+                    if (e.getStateChange() == ItemEvent.SELECTED) {
+                        final String fontName = fontsBox.getSelectedItem().toString();
+                        
+                        fontsBox.setFont(new Font(fontName, Font.PLAIN, 16));
+
+                        if (start == end) {
+                        // No selection, apply style to input attributes
+                        SimpleAttributeSet attr = new SimpleAttributeSet();
+                        StyleConstants.setFontFamily(attr, fontName);
+                        textWindow.setCharacterAttributes(attr, false);
+                    } else {
+                        // Apply font size to the selected text
+                        MutableAttributeSet attr = new SimpleAttributeSet();
+                        StyleConstants.setFontFamily(attr, fontName);
+                        doc.setCharacterAttributes(start, end - start, attr, false);
+                    }
+                    }
+                }
+            });
+            fontsBox.setSelectedItem(0);
+            fontsBox.getEditor().selectAll();
+
+            formatManagingLayout.add(fontsBox);
 
             return formatManagingLayout;
 
+        }
+
+        private class FontFamilyBox extends BasicComboBoxRenderer {
+
+            private static final long serialVersionUID = 1L;
+            private JComboBox<String> comboBox;
+            final DefaultListCellRenderer defaultRenderer = new DefaultListCellRenderer();
+            private int row;
+
+            public FontFamilyBox(JComboBox<String> fontsBox) {
+                comboBox = fontsBox;
+            }
+
+            private void manItemInCombo() {
+                if (comboBox.getItemCount() > 0) {
+                    final Object comp = comboBox.getUI().getAccessibleChild(comboBox, 0);
+                    if ((comp instanceof JPopupMenu)) {
+                        final JList list = new JList(comboBox.getModel());
+                        final JPopupMenu popup = (JPopupMenu) comp;
+                        final JScrollPane scrollPane = (JScrollPane) popup.getComponent(0);
+                        final JViewport viewport = scrollPane.getViewport();
+                        final Rectangle rect = popup.getVisibleRect();
+                        final Point pt = viewport.getViewPosition();
+                        row = list.locationToIndex(pt);
+                    }
+                }
+            }
+
+            @Override
+            public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected,
+                    boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (list.getModel().getSize() > 0) {
+                    manItemInCombo();
+                }
+                final JLabel renderer = (JLabel) defaultRenderer.getListCellRendererComponent(list, value, row,
+                        isSelected, cellHasFocus);
+                final Object fntObj = value;
+                final String fontFamilyName = (String) fntObj;
+                setFont(new Font(fontFamilyName, Font.PLAIN, 16));
+                return this;
+            }
+        }
+
+        private Vector<String> getEditorFonts() {
+
+            String[] availableFonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
+            Vector<String> returnList = new Vector<>();
+
+            for (String font : availableFonts) {
+
+                if (FONT_LIST.contains(font)) {
+
+                    returnList.add(font);
+                }
+            }
+
+            return returnList;
         }
 
         public JPanel getJPanel() {
