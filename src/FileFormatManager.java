@@ -109,8 +109,11 @@ public class FileFormatManager {
                 formatPanel.add(myBox);
             } else if (component instanceof JButton && component.getName() != null) {
                 JButton myButton = (JButton) component;
-                System.out.println(myButton.getName());
                 myButton.setText(guiLanguageDicitonary.get(myButton.getName())[currentLanguage]);
+            }
+            else if (component instanceof JCheckBox){
+                 JCheckBox myCheck = (JCheckBox) component;
+                myCheck.setText(guiLanguageDicitonary.get((String) myCheck.getName())[currentLanguage]);
             }
 
         }
@@ -386,6 +389,111 @@ public class FileFormatManager {
 
             formatManagingLayout.add(textSizeSlider);
 
+            //Checkbox 
+            /*
+             * TO-DO put Item Listener in own class (But it's like 10pm and I am tired)
+             */
+            JCheckBox boldBox = new JCheckBox();
+            boldBox.setName("chk_bold_");
+            boldBox.setText(guiLanguageDicitonary.get((String) boldBox.getName())[currentLanguage]);
+            boldBox.addItemListener(new ItemListener() {
+                StyledDocument doc = textWindow.getStyledDocument();
+                int start = textWindow.getSelectionStart();
+                int end = textWindow.getSelectionEnd();
+
+                @Override
+                public void itemStateChanged(ItemEvent event){
+                     if (start == end) {
+                        // No selection, apply style to input attributes
+                        SimpleAttributeSet attr = new SimpleAttributeSet();
+                        StyleConstants.setBold(attr, event.getStateChange() == ItemEvent.SELECTED);
+                        textWindow.setCharacterAttributes(attr, false);
+                    } else {
+                        // Apply font size to the selected text
+                        MutableAttributeSet attr = new SimpleAttributeSet();
+                        StyleConstants.setBold(attr, event.getStateChange() == ItemEvent.SELECTED);
+                        doc.setCharacterAttributes(start, end - start, attr, false);
+                    }
+                }
+            });
+            formatManagingLayout.add(boldBox);
+
+            JCheckBox italicBox = new JCheckBox();
+            italicBox.setName("chk_italic_");
+            italicBox.setText(guiLanguageDicitonary.get((String) italicBox.getName())[currentLanguage]);
+            italicBox.addItemListener(new ItemListener() {
+                StyledDocument doc = textWindow.getStyledDocument();
+                int start = textWindow.getSelectionStart();
+                int end = textWindow.getSelectionEnd();
+
+                @Override
+                public void itemStateChanged(ItemEvent event){
+                     if (start == end) {
+                        // No selection, apply style to input attributes
+                        SimpleAttributeSet attr = new SimpleAttributeSet();
+                        StyleConstants.setItalic(attr, event.getStateChange() == ItemEvent.SELECTED);
+                        textWindow.setCharacterAttributes(attr, false);
+                    } else {
+                        // Apply font size to the selected text
+                        MutableAttributeSet attr = new SimpleAttributeSet();
+                        StyleConstants.setItalic(attr, event.getStateChange() == ItemEvent.SELECTED);
+                        doc.setCharacterAttributes(start, end - start, attr, false);
+                    }
+                }
+            });
+            formatManagingLayout.add(italicBox);
+
+            JCheckBox underlinedBox = new JCheckBox();
+            underlinedBox.setName("chk_underline_");
+            underlinedBox.setText(guiLanguageDicitonary.get((String) underlinedBox.getName())[currentLanguage]);
+            underlinedBox.addItemListener(new ItemListener() {
+                StyledDocument doc = textWindow.getStyledDocument();
+                int start = textWindow.getSelectionStart();
+                int end = textWindow.getSelectionEnd();
+
+                @Override
+                public void itemStateChanged(ItemEvent event){
+                     if (start == end) {
+                        // No selection, apply style to input attributes
+                        SimpleAttributeSet attr = new SimpleAttributeSet();
+                        StyleConstants.setUnderline(attr, event.getStateChange() == ItemEvent.SELECTED);
+                        textWindow.setCharacterAttributes(attr, false);
+                    } else {
+                        // Apply font size to the selected text
+                        MutableAttributeSet attr = new SimpleAttributeSet();
+                        StyleConstants.setUnderline(attr, event.getStateChange() == ItemEvent.SELECTED);
+                        doc.setCharacterAttributes(start, end - start, attr, false);
+                    }
+                }
+            });
+            formatManagingLayout.add(underlinedBox);
+
+            JCheckBox strikethroughBox = new JCheckBox();
+            strikethroughBox.setName("chk_strikethrough_");
+            strikethroughBox.setText(guiLanguageDicitonary.get((String) strikethroughBox.getName())[currentLanguage]);
+            strikethroughBox.addItemListener(new ItemListener() {
+                StyledDocument doc = textWindow.getStyledDocument();
+                int start = textWindow.getSelectionStart();
+                int end = textWindow.getSelectionEnd();
+
+                @Override
+                public void itemStateChanged(ItemEvent event){
+                     if (start == end) {
+                        // No selection, apply style to input attributes
+                        SimpleAttributeSet attr = new SimpleAttributeSet();
+                        StyleConstants.setStrikeThrough(attr, event.getStateChange() == ItemEvent.SELECTED);
+                        textWindow.setCharacterAttributes(attr, false);
+                    } else {
+                        // Apply font size to the selected text
+                        MutableAttributeSet attr = new SimpleAttributeSet();
+                        StyleConstants.setStrikeThrough(attr, event.getStateChange() == ItemEvent.SELECTED);
+                        doc.setCharacterAttributes(start, end - start, attr, false);
+                    }
+                }
+            });
+            formatManagingLayout.add(strikethroughBox);
+
+
             /*
              * Combo Box
              */
@@ -451,10 +559,13 @@ public class FileFormatManager {
 
             formatManagingLayout.add(fontsBox);
 
+            
+
             return formatManagingLayout;
 
         }
 
+        //Took this from: https://stackoverflow.com/questions/16461454/custom-font-for-jcombobox not really sure how it works rn
         private class FontFamilyBox extends BasicComboBoxRenderer {
 
             private static final long serialVersionUID = 1L;
@@ -560,6 +671,10 @@ public class FileFormatManager {
             put("cbox_align2_", new String[] { "Align Right", "Rechtsbündig" });
             put("cbox_align3_", new String[] { "Align Justified", "Blocksatz" });
             put("lbl_textSize_", new String[] { "Size", "Größe" });
+            put("chk_bold_", new String[] {"Bold", "Fett"});
+            put("chk_italic_", new String[] {"Italic", "Kursiv"});
+            put("chk_underline_", new String[] {"Underline", "Unterstrichen"});
+            put("chk_strikethrough_", new String[] {"Strikethrough", "Durchstreichen"});
         }
     };
 }
