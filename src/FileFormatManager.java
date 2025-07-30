@@ -9,6 +9,8 @@ import javax.management.JMException;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.UndoableEditEvent;
+import javax.swing.event.UndoableEditListener;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.plaf.basic.BasicButtonUI;
 import javax.swing.plaf.basic.BasicComboBoxRenderer;
@@ -18,6 +20,10 @@ import javax.swing.text.StyledEditorKit.AlignmentAction;
 import javax.swing.text.StyledEditorKit.FontFamilyAction;
 import javax.swing.text.StyledEditorKit.FontSizeAction;
 import javax.swing.text.rtf.RTFEditorKit;
+import javax.swing.undo.CannotRedoException;
+import javax.swing.undo.CannotUndoException;
+import javax.swing.undo.UndoManager;
+
 import java.util.List;
 
 import java.awt.*;
@@ -46,6 +52,13 @@ public class FileFormatManager {
      */
     String[] languages = { "English", "Deutsch" };
     int currentLanguage = 0;
+
+    // undo and redo
+    public Document editorPaneDocument;
+    protected UndoHandler undoHandler = new UndoHandler();
+    protected UndoManager undoManager = new UndoManager();
+    private UndoAction undoAction = null;
+    private RedoAction redoAction = null;
 
     public FileFormatManager() {
         frame = new Frame("Nova Text Editor");
@@ -78,6 +91,21 @@ public class FileFormatManager {
                 System.exit(0);
             }
         });
+        editorPaneDocument = textWindow.getDocument();
+
+        editorPaneDocument.addUndoableEditListener(undoHandler);
+
+        KeyStroke undoKeystroke = KeyStroke.getKeyStroke(KeyEvent.VK_Z, Event.META_MASK);
+        KeyStroke redoKeystroke = KeyStroke.getKeyStroke(KeyEvent.VK_Y, Event.META_MASK);
+
+        undoAction = new UndoAction();
+        textWindow.getInputMap().put(undoKeystroke, "undoKeystroke");
+        textWindow.getActionMap().put("undoKeystroke", undoAction);
+
+        redoAction = new RedoAction();
+        textWindow.getInputMap().put(redoKeystroke, "redoKeystroke");
+        textWindow.getActionMap().put("redoKeystroke", redoAction);
+
     }
 
     public static List<Component> getAllComponents(final Container c) {
@@ -96,10 +124,16 @@ public class FileFormatManager {
 
         List<Component> comps = getAllComponents(frame);
         for (Component component : comps) {
-            if (component instanceof JLabel) {
+            if (component instanceof JCheckBox) {
+                System.out.println("CHECKBOX");
+                JCheckBox myCheck = (JCheckBox) component;
+                myCheck.setText(guiLanguageDicitonary.get((String) myCheck.getName())[currentLanguage]);
+            } else if (component instanceof JLabel && component.getName() != null) {
+                System.out.println("JLabel " + component.getName() + " \n");
                 JLabel myLabel = (JLabel) component;
                 myLabel.setText(guiLanguageDicitonary.get(myLabel.getName())[currentLanguage]);
             } else if (component instanceof JComboBox) {
+                System.out.println("Combo Box \n");
                 JComboBox<String> myBox = (JComboBox<String>) component;
                 String[] options = myBox.getName().split(" ");
                 myBox.removeAllItems();
@@ -110,10 +144,6 @@ public class FileFormatManager {
             } else if (component instanceof JButton && component.getName() != null) {
                 JButton myButton = (JButton) component;
                 myButton.setText(guiLanguageDicitonary.get(myButton.getName())[currentLanguage]);
-            }
-            else if (component instanceof JCheckBox){
-                 JCheckBox myCheck = (JCheckBox) component;
-                myCheck.setText(guiLanguageDicitonary.get((String) myCheck.getName())[currentLanguage]);
             }
 
         }
@@ -275,7 +305,90 @@ public class FileFormatManager {
 
             fileManagingLayout.add(languageButton);
 
+            JButton undoButton = new JButton(undoAction);
+            undoButton.setName("btn_undo_");
+            undoButton.setText(guiLanguageDicitonary.get(undoButton.getName())[currentLanguage]);
+
+            fileManagingLayout.add(undoButton);
+
+            JButton redoButton = new JButton(redoAction);
+            redoButton.setName("btn_redo_");
+            redoButton.setText(guiLanguageDicitonary.get(redoButton.getName())[currentLanguage]);
+
+            fileManagingLayout.add(redoButton);
+
             return fileManagingLayout;
+        }
+    }
+
+    // java undo and redo action classes
+
+    public class UndoHandler implements UndoableEditListener {
+
+        /**
+         * Messaged when the Document has created an edit, the edit is added to
+         * <code>undoManager</code>, an instance of UndoManager.
+         */
+        public void undoableEditHappened(UndoableEditEvent e) {
+            undoManager.addEdit(e.getEdit());
+            undoAction.update();
+            redoAction.update();
+        }
+    }
+
+    public class UndoAction extends AbstractAction {
+        public UndoAction() {
+            super("Undo");
+            setEnabled(false);
+        }
+
+        public void actionPerformed(ActionEvent e) {
+            try {
+                undoManager.undo();
+            } catch (CannotUndoException ex) {
+                // TODO deal with this
+                // ex.printStackTrace();
+            }
+            update();
+            redoAction.update();
+        }
+
+        protected void update() {
+            if (undoManager.canUndo()) {
+                setEnabled(true);
+                putValue(Action.NAME, undoManager.getUndoPresentationName());
+            } else {
+                setEnabled(false);
+                putValue(Action.NAME, "Undo");
+            }
+        }
+    }
+
+    public class RedoAction extends AbstractAction {
+        public RedoAction() {
+            super("Redo");
+            setEnabled(false);
+        }
+
+        public void actionPerformed(ActionEvent e) {
+            try {
+                undoManager.redo();
+            } catch (CannotRedoException ex) {
+                // TODO deal with this
+                ex.printStackTrace();
+            }
+            update();
+            undoAction.update();
+        }
+
+        protected void update() {
+            if (undoManager.canRedo()) {
+                setEnabled(true);
+                putValue(Action.NAME, undoManager.getRedoPresentationName());
+            } else {
+                setEnabled(false);
+                putValue(Action.NAME, "Redo");
+            }
         }
     }
 
@@ -389,7 +502,7 @@ public class FileFormatManager {
 
             formatManagingLayout.add(textSizeSlider);
 
-            //Checkbox 
+            // Checkbox
             /*
              * TO-DO put Item Listener in own class (But it's like 10pm and I am tired)
              */
@@ -402,8 +515,8 @@ public class FileFormatManager {
                 int end = textWindow.getSelectionEnd();
 
                 @Override
-                public void itemStateChanged(ItemEvent event){
-                     if (start == end) {
+                public void itemStateChanged(ItemEvent event) {
+                    if (start == end) {
                         // No selection, apply style to input attributes
                         SimpleAttributeSet attr = new SimpleAttributeSet();
                         StyleConstants.setBold(attr, event.getStateChange() == ItemEvent.SELECTED);
@@ -427,8 +540,8 @@ public class FileFormatManager {
                 int end = textWindow.getSelectionEnd();
 
                 @Override
-                public void itemStateChanged(ItemEvent event){
-                     if (start == end) {
+                public void itemStateChanged(ItemEvent event) {
+                    if (start == end) {
                         // No selection, apply style to input attributes
                         SimpleAttributeSet attr = new SimpleAttributeSet();
                         StyleConstants.setItalic(attr, event.getStateChange() == ItemEvent.SELECTED);
@@ -452,8 +565,8 @@ public class FileFormatManager {
                 int end = textWindow.getSelectionEnd();
 
                 @Override
-                public void itemStateChanged(ItemEvent event){
-                     if (start == end) {
+                public void itemStateChanged(ItemEvent event) {
+                    if (start == end) {
                         // No selection, apply style to input attributes
                         SimpleAttributeSet attr = new SimpleAttributeSet();
                         StyleConstants.setUnderline(attr, event.getStateChange() == ItemEvent.SELECTED);
@@ -477,8 +590,8 @@ public class FileFormatManager {
                 int end = textWindow.getSelectionEnd();
 
                 @Override
-                public void itemStateChanged(ItemEvent event){
-                     if (start == end) {
+                public void itemStateChanged(ItemEvent event) {
+                    if (start == end) {
                         // No selection, apply style to input attributes
                         SimpleAttributeSet attr = new SimpleAttributeSet();
                         StyleConstants.setStrikeThrough(attr, event.getStateChange() == ItemEvent.SELECTED);
@@ -492,7 +605,6 @@ public class FileFormatManager {
                 }
             });
             formatManagingLayout.add(strikethroughBox);
-
 
             /*
              * Combo Box
@@ -537,20 +649,20 @@ public class FileFormatManager {
 
                     if (e.getStateChange() == ItemEvent.SELECTED) {
                         final String fontName = fontsBox.getSelectedItem().toString();
-                        
+
                         fontsBox.setFont(new Font(fontName, Font.PLAIN, 16));
 
                         if (start == end) {
-                        // No selection, apply style to input attributes
-                        SimpleAttributeSet attr = new SimpleAttributeSet();
-                        StyleConstants.setFontFamily(attr, fontName);
-                        textWindow.setCharacterAttributes(attr, false);
-                    } else {
-                        // Apply font size to the selected text
-                        MutableAttributeSet attr = new SimpleAttributeSet();
-                        StyleConstants.setFontFamily(attr, fontName);
-                        doc.setCharacterAttributes(start, end - start, attr, false);
-                    }
+                            // No selection, apply style to input attributes
+                            SimpleAttributeSet attr = new SimpleAttributeSet();
+                            StyleConstants.setFontFamily(attr, fontName);
+                            textWindow.setCharacterAttributes(attr, false);
+                        } else {
+                            // Apply font size to the selected text
+                            MutableAttributeSet attr = new SimpleAttributeSet();
+                            StyleConstants.setFontFamily(attr, fontName);
+                            doc.setCharacterAttributes(start, end - start, attr, false);
+                        }
                     }
                 }
             });
@@ -559,13 +671,13 @@ public class FileFormatManager {
 
             formatManagingLayout.add(fontsBox);
 
-            
-
             return formatManagingLayout;
 
         }
 
-        //Took this from: https://stackoverflow.com/questions/16461454/custom-font-for-jcombobox not really sure how it works rn
+        // Took this from:
+        // https://stackoverflow.com/questions/16461454/custom-font-for-jcombobox not
+        // really sure how it works rn
         private class FontFamilyBox extends BasicComboBoxRenderer {
 
             private static final long serialVersionUID = 1L;
@@ -658,6 +770,8 @@ public class FileFormatManager {
             put("btn_open_", new String[] { "OPEN", "ÖFFNEN" });
             put("btn_quit_", new String[] { "QUIT", "SCHLIESEN" });
             put("btn_language_", new String[] { "LANGUAGE", "SPRACHE" });
+            put("btn_undo_", new String[] {"UNDO", "ZURÜCK"});
+            put("btn_redo_", new String[] {"REDO", "NOCHMALS"});
 
             put("lbl_formating_", new String[] { "Formating", "Formatieren" });
             put("btn_cut_", new String[] { "Cut", "Ausschneiden" });
@@ -671,10 +785,10 @@ public class FileFormatManager {
             put("cbox_align2_", new String[] { "Align Right", "Rechtsbündig" });
             put("cbox_align3_", new String[] { "Align Justified", "Blocksatz" });
             put("lbl_textSize_", new String[] { "Size", "Größe" });
-            put("chk_bold_", new String[] {"Bold", "Fett"});
-            put("chk_italic_", new String[] {"Italic", "Kursiv"});
-            put("chk_underline_", new String[] {"Underline", "Unterstrichen"});
-            put("chk_strikethrough_", new String[] {"Strikethrough", "Durchstreichen"});
+            put("chk_bold_", new String[] { "Bold", "Fett" });
+            put("chk_italic_", new String[] { "Italic", "Kursiv" });
+            put("chk_underline_", new String[] { "Underline", "Unterstrichen" });
+            put("chk_strikethrough_", new String[] { "Strikethrough", "Durchstreichen" });
         }
     };
 }
