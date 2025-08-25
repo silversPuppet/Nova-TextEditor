@@ -12,6 +12,7 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
+import javax.swing.JTextPane;
 import javax.swing.JViewport;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -305,6 +306,18 @@ public class FormatingUI implements FileFormatManager.GUI{
             fontsBox.getEditor().selectAll();
 
             formatManagingLayout.add(fontsBox);
+
+            JLabel counterLabel = new JLabel();
+            counterLabel.setName("lbl_wordcounter_");
+            counterLabel.setText(guiLanguageDicitonary.get((String) counterLabel.getName())[fileFormatManager.currentLanguage]);
+            formatManagingLayout.add(counterLabel);
+
+            JLabel wordCountLabel = new JLabel();
+            wordCountLabel.setName("_dynamic_WordCounter_");
+            wordCountLabel.setText("0");
+
+            
+            formatManagingLayout.add(wordCountLabel);
 
             return formatManagingLayout;
 

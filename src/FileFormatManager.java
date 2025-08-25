@@ -7,10 +7,7 @@ import java.util.Vector;
 
 import javax.management.JMException;
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.UndoableEditEvent;
-import javax.swing.event.UndoableEditListener;
+import javax.swing.event.*;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.plaf.basic.BasicButtonUI;
 import javax.swing.plaf.basic.BasicComboBoxRenderer;
@@ -42,7 +39,6 @@ public class FileFormatManager {
     TextWindow textWindow;
     FormatingUI formatingUI;
     FileUI fileUI;
-    
 
     /*
      * 0 = English
@@ -71,7 +67,6 @@ public class FileFormatManager {
 
         KeyStroke undoKeystroke = KeyStroke.getKeyStroke(KeyEvent.VK_Z, Event.META_MASK);
         KeyStroke redoKeystroke = KeyStroke.getKeyStroke(KeyEvent.VK_Y, Event.META_MASK);
-
 
         undoAction = new UndoAction();
         textWindow.getInputMap().put(undoKeystroke, "undoKeystroke");
@@ -104,6 +99,66 @@ public class FileFormatManager {
         editorPaneDocument = textWindow.getDocument();
 
         editorPaneDocument.addUndoableEditListener(undoHandler);
+
+        editorPaneDocument.addDocumentListener(new TextPaneListener());
+    }
+
+    public class TextPaneListener implements DocumentListener {
+        JLabel wordCounter;
+
+        public TextPaneListener() {
+            super();
+            JPanel formatPanel = formatingUI.getJPanel();
+
+            List<Component> comps = getAllComponents(frame);
+            for (Component component : comps) {
+                if (component.getName() == "_dynamic_WordCounter_") {
+                    wordCounter = (JLabel) component;
+                }
+            }
+        }
+
+        public void insertUpdate(DocumentEvent e) {
+             Document textDoc = e.getDocument();
+             int numberOfWords = 0;
+             try{
+                String[] words = textDoc.getText(0, textDoc.getLength()).split(" ");
+                for(String word : words){
+                    numberOfWords++;
+                }
+             }catch(BadLocationException exception){
+                System.out.println("Bad Loading Error when trying to get the number of words");
+             }
+             wordCounter.setText(Integer.toString(numberOfWords));
+        }
+
+        public void removeUpdate(DocumentEvent e) {
+             Document textDoc = e.getDocument();
+             int numberOfWords = 0;
+             try{
+                String[] words = textDoc.getText(0, textDoc.getLength()).split(" ");
+                for(String word : words){
+                    numberOfWords++;
+                }
+             }catch(BadLocationException exception){
+                System.out.println("Bad Loading Error when trying to get the number of words");
+             }
+             wordCounter.setText(Integer.toString(numberOfWords));
+        }
+
+        public void changedUpdate(DocumentEvent e) {
+             Document textDoc = e.getDocument();
+             int numberOfWords = 0;
+             try{
+                String[] words = textDoc.getText(0, textDoc.getLength()).split(" ");
+                for(String word : words){
+                    numberOfWords++;
+                }
+             }catch(BadLocationException exception){
+                System.out.println("Bad Loading Error when trying to get the number of words");
+             }
+             wordCounter.setText(Integer.toString(numberOfWords));
+        }
     }
 
     public static List<Component> getAllComponents(final Container c) {
@@ -117,6 +172,8 @@ public class FileFormatManager {
         return compList;
     }
 
+    // "dynamic" components such as wordCounter are changed by other parts of the
+    // code and should not change depending on language
     public void updateLanguage() {
         JPanel formatPanel = formatingUI.getJPanel();
 
@@ -126,7 +183,8 @@ public class FileFormatManager {
                 System.out.println("CHECKBOX");
                 JCheckBox myCheck = (JCheckBox) component;
                 myCheck.setText(guiLanguageDicitonary.get((String) myCheck.getName())[currentLanguage]);
-            } else if (component instanceof JLabel && component.getName() != null) {
+            } else if (component instanceof JLabel && component.getName() != null
+                    && component.getName().contains("dynamic")) {
                 System.out.println("JLabel " + component.getName() + " \n");
                 JLabel myLabel = (JLabel) component;
                 myLabel.setText(guiLanguageDicitonary.get(myLabel.getName())[currentLanguage]);
@@ -221,7 +279,6 @@ public class FileFormatManager {
             } catch (BadLocationException ble) {
                 System.err.println("Couldn't insert initial text into text pane.");
             }
-
         }
     }
 
@@ -267,10 +324,10 @@ public class FileFormatManager {
         protected void update() {
             if (undoManager.canUndo()) {
                 setEnabled(true);
-                //putValue(Action.NAME, undoManager.getUndoPresentationName());
+                // putValue(Action.NAME, undoManager.getUndoPresentationName());
             } else {
                 setEnabled(false);
-                //putValue(Action.NAME, "Undo");
+                // putValue(Action.NAME, "Undo");
             }
         }
     }
@@ -295,10 +352,10 @@ public class FileFormatManager {
         protected void update() {
             if (undoManager.canRedo()) {
                 setEnabled(true);
-                //putValue(Action.NAME, undoManager.getRedoPresentationName());
+                // putValue(Action.NAME, undoManager.getRedoPresentationName());
             } else {
                 setEnabled(false);
-                //putValue(Action.NAME, "Redo");
+                // putValue(Action.NAME, "Redo");
             }
         }
     }
@@ -322,15 +379,15 @@ public class FileFormatManager {
         }
     }
 
-     Map<String, String[]> guiLanguageDicitonary = new HashMap<>() {
+    Map<String, String[]> guiLanguageDicitonary = new HashMap<>() {
         {
             // Type Name English, German
             put("btn_save_", new String[] { "SAVE", "SPEICHERN" });
             put("btn_open_", new String[] { "OPEN", "ÖFFNEN" });
             put("btn_quit_", new String[] { "QUIT", "SCHLIESEN" });
             put("btn_language_", new String[] { "LANGUAGE", "SPRACHE" });
-            put("btn_undo_", new String[] {"UNDO", "ZURÜCK"});
-            put("btn_redo_", new String[] {"REDO", "NOCHMALS"});
+            put("btn_undo_", new String[] { "UNDO", "ZURÜCK" });
+            put("btn_redo_", new String[] { "REDO", "NOCHMALS" });
 
             put("lbl_formating_", new String[] { "Formating", "Formatieren" });
             put("btn_cut_", new String[] { "Cut", "Ausschneiden" });
@@ -348,24 +405,26 @@ public class FileFormatManager {
             put("chk_italic_", new String[] { "Italic", "Kursiv" });
             put("chk_underline_", new String[] { "Underline", "Unterstrichen" });
             put("chk_strikethrough_", new String[] { "Strikethrough", "Durchstreichen" });
+
+            put("lbl_wordcounter_", new String[] { "Words: ", "Wörter: " });
         }
     };
 
     public Vector<String> getEditorFonts() {
 
-            String[] availableFonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
-            Vector<String> returnList = new Vector<>();
+        String[] availableFonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
+        Vector<String> returnList = new Vector<>();
 
-            for (String font : availableFonts) {
+        for (String font : availableFonts) {
 
-                if (FONT_LIST.contains(font)) {
+            if (FONT_LIST.contains(font)) {
 
-                    returnList.add(font);
-                }
+                returnList.add(font);
             }
-
-            return returnList;
         }
+
+        return returnList;
+    }
 
     public static final List<String> FONT_LIST = Arrays
             .asList(new String[] { "Arial", "Calibri", "Cambria", "Courier New", "Comic Sans MS", "Dialog", "Georgia",
